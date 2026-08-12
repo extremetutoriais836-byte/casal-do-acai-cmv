@@ -31,14 +31,26 @@ export default function CadastroPage() {
     }
 
     setEnviando(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: { data: { nome } },
-    });
-
-    if (error) {
-      setErro(traduzErro(error.message));
+    let data;
+    try {
+      const resp = await supabase.auth.signUp({
+        email,
+        password: senha,
+        options: { data: { nome } },
+      });
+      if (resp.error) {
+        setErro(traduzErro(resp.error.message));
+        setEnviando(false);
+        return;
+      }
+      data = resp.data;
+    } catch (e) {
+      // Ex.: chaves do Supabase ausentes — sem isto o botão ficaria travado.
+      setErro(
+        e instanceof Error && e.message.includes("[Supabase]")
+          ? "O app está sem configuração do banco de dados. Avise o suporte."
+          : "Não foi possível criar a conta agora. Verifique sua conexão e tente de novo."
+      );
       setEnviando(false);
       return;
     }

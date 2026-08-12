@@ -17,9 +17,20 @@ export default function LoginPage() {
     e.preventDefault();
     setErro(null);
     setEnviando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) {
-      setErro(traduzErro(error.message));
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (error) {
+        setErro(traduzErro(error.message));
+        setEnviando(false);
+        return;
+      }
+    } catch (e) {
+      // Ex.: chaves do Supabase ausentes — sem isto o botão ficaria travado.
+      setErro(
+        e instanceof Error && e.message.includes("[Supabase]")
+          ? "O app está sem configuração do banco de dados. Avise o suporte."
+          : "Não foi possível entrar agora. Verifique sua conexão e tente de novo."
+      );
       setEnviando(false);
       return;
     }
