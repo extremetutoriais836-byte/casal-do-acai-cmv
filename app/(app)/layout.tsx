@@ -6,6 +6,7 @@ import { AppProvider, useApp } from "@/components/AppContext";
 import { Sidebar } from "@/components/Sidebar";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { Logo } from "@/components/Logo";
+import { NavegacaoEtapas } from "@/components/NavegacaoEtapas";
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { carregando, restaurante } = useApp();
@@ -41,7 +42,14 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar mobile */}
         <header className="flex items-center justify-between border-b border-line bg-card px-4 py-3 md:hidden">
-          <Logo size={30} />
+          <div className="flex min-w-0 items-center gap-2">
+            <Logo size={30} />
+            {restaurante?.nome_loja && (
+              <span className="min-w-0 truncate border-l border-line pl-2 text-sm font-semibold text-brand-deep">
+                {restaurante.nome_loja}
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setDrawer((d) => !d)}
             aria-label="Menu"
@@ -65,7 +73,10 @@ function Shell({ children }: { children: React.ReactNode }) {
               </p>
             </div>
           ) : (
-            children
+            <>
+              {children}
+              <NavegacaoEtapas />
+            </>
           )}
         </main>
       </div>

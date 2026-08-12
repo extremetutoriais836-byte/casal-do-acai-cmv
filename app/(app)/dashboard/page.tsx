@@ -71,6 +71,7 @@ export default function DashboardPage() {
         key={restaurante.id}
         restaurante={restaurante}
         config={config}
+        onNomeLoja={(n) => persistir({ nome_loja: n })}
         onModelo={(m) => persistir({ modelo_entrega: m })}
         onTaxa={(t) => persistir({ taxa_plataforma: t })}
         onMeta={(m) => persistir({ meta_lucro: m })}
@@ -153,12 +154,14 @@ export default function DashboardPage() {
 function SeletorEntrega({
   restaurante,
   config,
+  onNomeLoja,
   onModelo,
   onTaxa,
   onMeta,
 }: {
   restaurante: Restaurante;
   config: ConfigApp;
+  onNomeLoja: (n: string) => void;
   onModelo: (m: ModeloEntrega) => void;
   onTaxa: (t: number) => void;
   onMeta: (m: number) => void;
@@ -168,6 +171,13 @@ function SeletorEntrega({
     String(restaurante.taxa_plataforma).replace(".", ",")
   );
   const [meta, setMeta] = useState(() => String(restaurante.meta_lucro).replace(".", ","));
+  const [nomeLoja, setNomeLoja] = useState(() => restaurante.nome_loja ?? "");
+
+  function salvarNomeLoja() {
+    const n = nomeLoja.trim();
+    if (!n || n === restaurante.nome_loja) return;
+    onNomeLoja(n);
+  }
 
   function salvarTaxa() {
     const v = parseDecimalBR(taxaPlat);
@@ -188,6 +198,16 @@ function SeletorEntrega({
 
   return (
     <Card className="mb-6">
+      <label className="mb-5 block">
+        <Rotulo ajuda="Aparece no topo do app e no menu">Nome da sua loja</Rotulo>
+        <Input
+          value={nomeLoja}
+          onChange={(e) => setNomeLoja(e.target.value)}
+          onBlur={salvarNomeLoja}
+          placeholder="Ex: Açaí do Casal"
+        />
+      </label>
+
       <p className="mb-3 text-sm font-bold text-ink">Como você entrega?</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <button

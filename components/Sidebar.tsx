@@ -24,7 +24,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { contadores, abrirTutorial } = useApp();
+  const { contadores, abrirTutorial, restaurante } = useApp();
 
   const feitas = NAV_ITENS.filter((i) => i.requer && etapaConcluida(i, contadores)).length;
   const totalComEtapa = NAV_ITENS.filter((i) => i.requer).length + 1; // +1 = "meu lucro"
@@ -39,6 +39,11 @@ export function Sidebar({
     <aside className="flex h-full w-72 flex-col border-r border-line bg-card">
       <div className="px-5 pt-6 pb-4">
         <Logo />
+        {restaurante?.nome_loja && (
+          <p className="mt-2 truncate text-sm font-semibold text-brand-deep" title={restaurante.nome_loja}>
+            {restaurante.nome_loja}
+          </p>
+        )}
       </div>
 
       {/* progresso */}

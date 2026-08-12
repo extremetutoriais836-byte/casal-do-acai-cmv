@@ -11,6 +11,7 @@ import { mascaraTelefone, telefoneValido, telefoneParaArmazenar } from "@/lib/fo
 export default function CadastroPage() {
   const router = useRouter();
   const [nome, setNome] = useState("");
+  const [nomeLoja, setNomeLoja] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
@@ -24,6 +25,10 @@ export default function CadastroPage() {
     setErro(null);
     setAviso(null);
 
+    if (!nomeLoja.trim()) {
+      setErro("Informe o nome da sua loja.");
+      return;
+    }
     if (!telefoneValido(telefone)) {
       setErro("Informe um WhatsApp válido com DDD. Ex: (11) 98765-4321");
       return;
@@ -43,7 +48,13 @@ export default function CadastroPage() {
       const resp = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome, telefone: telefoneParaArmazenar(telefone) } },
+        options: {
+          data: {
+            nome,
+            nome_loja: nomeLoja.trim(),
+            telefone: telefoneParaArmazenar(telefone),
+          },
+        },
       });
       if (resp.error) {
         console.error("[cadastro] erro do Supabase:", resp.error);
@@ -83,7 +94,16 @@ export default function CadastroPage() {
         <p className="mt-1 text-sm text-muted">Acesso vitalício, incluído na sua compra.</p>
 
         <form onSubmit={criar} className="mt-5 space-y-4">
-          <Campo label="Nome" type="text" value={nome} onChange={setNome} autoComplete="name" required />
+          <Campo label="Seu nome" type="text" value={nome} onChange={setNome} autoComplete="name" required />
+          <Campo
+            label="Nome da sua loja"
+            type="text"
+            value={nomeLoja}
+            onChange={setNomeLoja}
+            placeholder="Ex: Açaí do Casal"
+            ajuda="É o nome que vai aparecer aqui no app."
+            required
+          />
           <Campo label="E-mail" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Campo
             label="WhatsApp"
