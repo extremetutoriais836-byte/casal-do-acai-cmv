@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
+import { traduzErroAuth, traduzExcecao } from "@/lib/erros";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -39,18 +40,15 @@ export default function CadastroPage() {
         options: { data: { nome } },
       });
       if (resp.error) {
-        setErro(traduzErro(resp.error.message));
+        console.error("[cadastro] erro do Supabase:", resp.error);
+        setErro(traduzErroAuth(resp.error.message, "criar a conta"));
         setEnviando(false);
         return;
       }
       data = resp.data;
     } catch (e) {
-      // Ex.: chaves do Supabase ausentes — sem isto o botão ficaria travado.
-      setErro(
-        e instanceof Error && e.message.includes("[Supabase]")
-          ? "O app está sem configuração do banco de dados. Avise o suporte."
-          : "Não foi possível criar a conta agora. Verifique sua conexão e tente de novo."
-      );
+      console.error("[cadastro] exceção:", e);
+      setErro(traduzExcecao(e, "criar a conta"));
       setEnviando(false);
       return;
     }
@@ -137,10 +135,3 @@ function Campo({
   );
 }
 
-function traduzErro(msg: string): string {
-  if (/already registered|already exists|user already/i.test(msg))
-    return "Este e-mail já tem conta. Tente entrar.";
-  if (/password/i.test(msg)) return "Senha inválida (mínimo 6 caracteres).";
-  if (/valid email|invalid email/i.test(msg)) return "E-mail inválido.";
-  return "Não foi possível criar a conta. Tente novamente.";
-}

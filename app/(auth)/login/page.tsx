@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
+import { traduzErroAuth, traduzExcecao } from "@/lib/erros";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,17 +21,14 @@ export default function LoginPage() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) {
-        setErro(traduzErro(error.message));
+        console.error("[login] erro do Supabase:", error);
+        setErro(traduzErroAuth(error.message, "entrar"));
         setEnviando(false);
         return;
       }
     } catch (e) {
-      // Ex.: chaves do Supabase ausentes — sem isto o botão ficaria travado.
-      setErro(
-        e instanceof Error && e.message.includes("[Supabase]")
-          ? "O app está sem configuração do banco de dados. Avise o suporte."
-          : "Não foi possível entrar agora. Verifique sua conexão e tente de novo."
-      );
+      console.error("[login] exceção:", e);
+      setErro(traduzExcecao(e, "entrar"));
       setEnviando(false);
       return;
     }
@@ -103,9 +101,3 @@ function Campo({
   );
 }
 
-function traduzErro(msg: string): string {
-  if (/invalid login credentials/i.test(msg)) return "E-mail ou senha incorretos.";
-  if (/email not confirmed/i.test(msg))
-    return "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
-  return "Não foi possível entrar. Tente novamente.";
-}
