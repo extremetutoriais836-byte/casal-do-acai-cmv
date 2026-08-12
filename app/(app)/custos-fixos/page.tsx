@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/components/AppContext";
+import { traduzErroBanco } from "@/lib/erros";
 import { brl, parseDecimalBR } from "@/lib/format";
 import { PageTitulo, Card, Rotulo, Input, Botao, Vazio } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -81,7 +82,10 @@ export default function CustosFixosPage() {
       ? await supabase.from("custos_fixos").update(payload).eq("id", editandoId)
       : await supabase.from("custos_fixos").insert(payload);
     setSalvando(false);
-    if (resp.error) return setErro("Não foi possível salvar. Tente novamente.");
+    if (resp.error) {
+      console.error("[custos-fixos] erro ao salvar:", resp.error);
+      return setErro(traduzErroBanco(resp.error, "salvar o gasto"));
+    }
     resetar();
     await carregar();
     await recarregarContadores();

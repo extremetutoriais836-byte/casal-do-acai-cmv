@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/components/AppContext";
+import { traduzErroBanco } from "@/lib/erros";
 import { brl, parseDecimalBR, unidadeEscalavel } from "@/lib/format";
 import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -112,7 +113,8 @@ export default function InsumosPage() {
 
     setSalvando(false);
     if (resp.error) {
-      setErro("Não foi possível salvar. Tente novamente.");
+      console.error("[insumos] erro ao salvar:", resp.error);
+      setErro(traduzErroBanco(resp.error, "salvar o ingrediente"));
       return;
     }
     resetar();

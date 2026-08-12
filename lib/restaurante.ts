@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { seedFichasAcai } from "./seedAcai";
 import { TAXA_PLATAFORMA_PADRAO, type ModeloEntrega } from "./calculo";
+import { traduzErroBanco } from "./erros";
 
 export interface Restaurante {
   id: string;
@@ -37,13 +38,34 @@ export async function ensureRestauranteDoUsuario(user: User): Promise<Restaurant
 
   // Cria se não existir (id = auth.uid()). ignoreDuplicates evita corrida.
   const telefone = (user.user_metadata?.telefone as string | undefined) ?? null;
+  const base = { id: user.id, nome, email: user.email ?? null };
+  const opcoes = { onConflict: "id", ignoreDuplicates: true } as const;
 
-  await supabase
+  let { error } = await supabase
     .from("restaurantes")
-    .upsert(
-      { id: user.id, nome, email: user.email ?? null, telefone },
-      { onConflict: "id", ignoreDuplicates: true }
+    .upsert({ ...base, telefone }, opcoes);
+
+  /**
+   * Se a migração schema_telefone.sql ainda não foi aplicada, o upsert acima
+   * falha por coluna inexistente. Isso é CRÍTICO: sem o registro em
+   * `restaurantes`, todo insert seguinte (insumo, ficha, custo) quebra por
+   * chave estrangeira, e o usuário só vê "não foi possível salvar".
+   * Aqui degradamos: grava sem o telefone para a conta funcionar.
+   */
+  if (error && /telefone/i.test(`${error.message} ${error.details ?? ""}`)) {
+    console.warn(
+      "[restaurante] coluna `telefone` ausente — rode schema_telefone.sql no Supabase. " +
+        "Criando a conta sem o telefone para não travar o uso."
     );
+    ({ error } = await supabase.from("restaurantes").upsert(base, opcoes));
+  }
+
+  if (error) {
+    // Sem o registro, nada mais funciona — falhar aqui é melhor que falhar
+    // depois, espalhado por todas as telas.
+    console.error("[restaurante] falha ao criar/garantir o registro:", error);
+    throw new Error(traduzErroBanco(error, "configurar sua conta"));
+  }
 
   // Semeia o kit de açaí na primeira vez.
   try {

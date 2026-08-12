@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/components/AppContext";
+import { traduzErroBanco, type ErroBanco } from "@/lib/erros";
 import { brl, parseDecimalBR, conversao, paraDigitacao, unidadeDigitacao } from "@/lib/format";
 import { faixaDoCopo, faixaStatus } from "@/lib/calculo";
 import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio } from "@/components/ui";
@@ -181,8 +182,9 @@ export default function FichasPage() {
       resetar();
       await carregar();
       await recarregarContadores();
-    } catch {
-      setErro("Não foi possível salvar o copo. Tente novamente.");
+    } catch (e) {
+      console.error("[fichas] erro ao salvar:", e);
+      setErro(traduzErroBanco(e as ErroBanco, "salvar o copo"));
     } finally {
       setSalvando(false);
     }

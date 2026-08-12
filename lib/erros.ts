@@ -52,3 +52,56 @@ export function traduzExcecao(e: unknown, acao: AcaoAuth): string {
     return "O app está sem configuração do banco de dados. Avise o suporte.";
   return traduzErroAuth(msg, acao);
 }
+
+/* ------------------------------------------------------------------ *
+ *  Erros de banco (PostgREST / Postgres)
+ * ------------------------------------------------------------------ */
+
+export interface ErroBanco {
+  message?: string;
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+}
+
+/**
+ * Traduz falhas de gravação. Mesma regra de sempre: mensagem acionável para
+ * o que é conhecido, e o texto original quando não for — nunca um
+ * "tente novamente" que não diz nada.
+ */
+export function traduzErroBanco(e: ErroBanco | null | undefined, acao = "salvar"): string {
+  const m = e?.message ?? "";
+  const c = e?.code ?? "";
+  const tudo = `${m} ${e?.details ?? ""} ${e?.hint ?? ""}`;
+
+  // Coluna ausente: migração pendente no Supabase.
+  if (c === "PGRST204" || /column .* does not exist|could not find the .* column/i.test(tudo)) {
+    const coluna = tudo.match(/'([a-z_]+)'|column "([a-z_]+)"/i);
+    const nome = coluna?.[1] ?? coluna?.[2];
+    return `O banco de dados está desatualizado${nome ? ` (falta a coluna "${nome}")` : ""}. Falta rodar uma migração no Supabase. Avise o suporte.`;
+  }
+
+  // Chave estrangeira: normalmente o restaurante do usuário não existe.
+  if (c === "23503" || /violates foreign key|foreign key constraint/i.test(tudo)) {
+    return "Sua conta ainda não terminou de ser configurada. Recarregue a página (F5) e tente de novo — se persistir, saia e entre novamente.";
+  }
+
+  // RLS: sessão expirada ou gravando em conta alheia.
+  if (c === "42501" || /row-level security|violates row-level security/i.test(tudo)) {
+    return "Sem permissão para gravar. Sua sessão pode ter expirado — saia e entre de novo.";
+  }
+
+  if (c === "23505" || /duplicate key|already exists/i.test(tudo)) {
+    return "Esse item já existe na sua lista.";
+  }
+
+  if (c === "23514" || /violates check constraint/i.test(tudo)) {
+    return "Algum valor está fora do permitido (preço ou quantidade). Confira os números.";
+  }
+
+  if (/failed to fetch|networkerror|load failed/i.test(tudo)) {
+    return "Sem conexão com o banco de dados. Verifique sua internet — se persistir, o projeto pode estar pausado.";
+  }
+
+  return `Não foi possível ${acao}.${m ? ` Detalhe técnico: ${m}` : ""}`;
+}
