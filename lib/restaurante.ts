@@ -9,6 +9,7 @@ export interface Restaurante {
   id: string;
   nome: string;
   email: string | null;
+  telefone: string | null;
   faturamento_estimado: number | null;
   onboarding_ok: boolean;
   modelo_entrega: ModeloEntrega;
@@ -35,10 +36,12 @@ export async function ensureRestauranteDoUsuario(user: User): Promise<Restaurant
     "Minha açaiteria";
 
   // Cria se não existir (id = auth.uid()). ignoreDuplicates evita corrida.
+  const telefone = (user.user_metadata?.telefone as string | undefined) ?? null;
+
   await supabase
     .from("restaurantes")
     .upsert(
-      { id: user.id, nome, email: user.email ?? null },
+      { id: user.id, nome, email: user.email ?? null, telefone },
       { onConflict: "id", ignoreDuplicates: true }
     );
 
@@ -58,7 +61,7 @@ export async function getRestaurante(id: string): Promise<Restaurante> {
   const { data } = await supabase
     .from("restaurantes")
     .select(
-      "id, nome, email, faturamento_estimado, onboarding_ok, modelo_entrega, taxa_plataforma, meta_lucro, bloqueado"
+      "id, nome, email, telefone, faturamento_estimado, onboarding_ok, modelo_entrega, taxa_plataforma, meta_lucro, bloqueado"
     )
     .eq("id", id)
     .single();
@@ -68,6 +71,7 @@ export async function getRestaurante(id: string): Promise<Restaurante> {
     id,
     nome: r.nome ?? "Minha açaiteria",
     email: r.email ?? null,
+    telefone: r.telefone ?? null,
     faturamento_estimado: r.faturamento_estimado ?? null,
     onboarding_ok: r.onboarding_ok ?? false,
     modelo_entrega: (r.modelo_entrega as ModeloEntrega) ?? "plataforma",

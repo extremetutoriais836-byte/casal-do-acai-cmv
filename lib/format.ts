@@ -75,3 +75,49 @@ export function paraDigitacao(quantidadeArmazenada: number, unidadeInsumo: strin
     ? quantidadeArmazenada * 1000
     : quantidadeArmazenada;
 }
+
+/* ------------------------------------------------------------------ *
+ *  Telefone / WhatsApp (Brasil)
+ *
+ *  Armazenamos SOMENTE DÍGITOS com DDI: 5511987654321 — formato que o
+ *  WhatsApp aceita direto em https://wa.me/<numero>, sem limpeza extra.
+ * ------------------------------------------------------------------ */
+
+export function somenteDigitos(v: string): string {
+  return (v ?? "").replace(/\D/g, "");
+}
+
+/** Máscara para digitação: (11) 98765-4321 */
+export function mascaraTelefone(v: string): string {
+  const d = somenteDigitos(v).slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/**
+ * Válido = 10 dígitos (fixo) ou 11 (celular, com o 9). O DDD brasileiro
+ * começa em 11, então o primeiro dígito nunca é 0.
+ */
+export function telefoneValido(v: string): boolean {
+  const d = somenteDigitos(v);
+  if (d.length !== 10 && d.length !== 11) return false;
+  if (d[0] === "0") return false;
+  if (d.length === 11 && d[2] !== "9") return false; // celular tem 9 na frente
+  return true;
+}
+
+/** Para o banco: acrescenta o DDI 55 se ainda não estiver lá. */
+export function telefoneParaArmazenar(v: string): string {
+  const d = somenteDigitos(v);
+  return d.startsWith("55") && d.length >= 12 ? d : `55${d}`;
+}
+
+/** Para exibir: 5511987654321 -> (11) 98765-4321 */
+export function telefoneParaExibir(v: string | null | undefined): string {
+  if (!v) return "—";
+  const d = somenteDigitos(v);
+  const local = d.startsWith("55") && d.length >= 12 ? d.slice(2) : d;
+  return mascaraTelefone(local) || "—";
+}

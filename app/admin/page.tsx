@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ShieldCheck, Search, Ban, RotateCcw } from "lucide-react";
+import { ShieldCheck, Search, Ban, RotateCcw, Download, MessageCircle } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Card, Rotulo, Input, Botao, Vazio } from "@/components/ui";
 import type { TutorialVideos, TaxasEntrega } from "@/lib/config";
+import { telefoneParaExibir } from "@/lib/format";
 
 interface RestauranteAdmin {
   id: string;
   nome: string;
   email: string | null;
+  telefone: string | null;
   onboarding_ok: boolean;
   bloqueado: boolean;
   created_at: string;
@@ -20,6 +22,7 @@ interface Contadores {
   total: number;
   ultimos7: number;
   comFicha: number;
+  comTelefone: number;
   concluiramTutorial: number;
 }
 
@@ -78,7 +81,10 @@ export default function AdminPage() {
     const q = busca.trim().toLowerCase();
     if (!q) return restaurantes;
     return restaurantes.filter(
-      (r) => r.nome.toLowerCase().includes(q) || (r.email ?? "").toLowerCase().includes(q)
+      (r) =>
+        r.nome.toLowerCase().includes(q) ||
+        (r.email ?? "").toLowerCase().includes(q) ||
+        (r.telefone ?? "").includes(q.replace(/\D/g, ""))
     );
   }, [restaurantes, busca]);
 
@@ -90,6 +96,39 @@ export default function AdminPage() {
       body: JSON.stringify({ chave, valor }),
     });
     setMsg(res.ok ? "Configuração salva." : "Falha ao salvar.");
+  }
+
+  /**
+   * Exporta a lista visível (respeita a busca) em CSV.
+   * O telefone sai como texto puro com DDI (5511...), pronto para importar
+   * em ferramenta de disparo. O prefixo ="..." evita o Excel comer o zero
+   * e transformar o número em notação científica.
+   */
+  function exportarCsv() {
+    const linhas = [
+      ["nome", "email", "telefone", "whatsapp", "cadastro", "fichas", "tutorial", "bloqueado"],
+      ...filtrados.map((r) => [
+        r.nome,
+        r.email ?? "",
+        r.telefone ? `="${r.telefone}"` : "",
+        r.telefone ? `https://wa.me/${r.telefone}` : "",
+        formatarData(r.created_at),
+        String(r.fichas),
+        r.onboarding_ok ? "sim" : "nao",
+        r.bloqueado ? "sim" : "nao",
+      ]),
+    ];
+    const csv = linhas
+      .map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\r\n");
+    // BOM: faz o Excel abrir os acentos corretamente.
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cadastros-casal-do-acai.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function toggleBloqueio(r: RestauranteAdmin) {
@@ -152,7 +191,7 @@ export default function AdminPage() {
           <Kpi rotulo="Cadastros" valor={contadores.total} />
           <Kpi rotulo="Últimos 7 dias" valor={contadores.ultimos7} />
           <Kpi rotulo="Montaram 1ª ficha" valor={contadores.comFicha} destaque />
-          <Kpi rotulo="Concluíram tutorial" valor={contadores.concluiramTutorial} />
+          <Kpi rotulo="Com WhatsApp" valor={contadores.comTelefone} />
         </div>
       )}
 
@@ -243,9 +282,14 @@ export default function AdminPage() {
             className="pl-9"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou e-mail…"
+            placeholder="Buscar por nome, e-mail ou telefone…"
           />
         </div>
+        <Botao variante="secundario" onClick={exportarCsv} className="whitespace-nowrap">
+          <span className="flex items-center gap-1.5">
+            <Download size={15} /> Exportar CSV
+          </span>
+        </Botao>
       </div>
 
       {filtrados.length === 0 ? (
@@ -257,6 +301,7 @@ export default function AdminPage() {
               <tr>
                 <th className="px-4 py-3">Nome</th>
                 <th className="px-4 py-3">E-mail</th>
+                <th className="px-4 py-3">WhatsApp</th>
                 <th className="px-4 py-3">Cadastro</th>
                 <th className="px-4 py-3 text-center">Tutorial</th>
                 <th className="px-4 py-3 text-center">Fichas</th>
@@ -275,6 +320,21 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-muted">{r.email ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    {r.telefone ? (
+                      <a
+                        href={`https://wa.me/${r.telefone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-vivid"
+                      >
+                        <MessageCircle size={13} />
+                        {telefoneParaExibir(r.telefone)}
+                      </a>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-muted">{formatarData(r.created_at)}</td>
                   <td className="px-4 py-3 text-center">{r.onboarding_ok ? "✓" : "—"}</td>
                   <td className="px-4 py-3 text-center font-semibold text-brand-deep">{r.fichas}</td>

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const [{ data: restaurantes }, { data: fichas }] = await Promise.all([
       admin
         .from("restaurantes")
-        .select("id, nome, email, onboarding_ok, bloqueado, created_at")
+        .select("id, nome, email, telefone, onboarding_ok, bloqueado, created_at")
         .order("created_at", { ascending: false }),
       admin.from("fichas_tecnicas").select("restaurante_id"),
     ]);
@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       total: lista.length,
       ultimos7: lista.filter((r) => r.created_at >= seteDias).length,
       comFicha: lista.filter((r) => r.fichas > 0).length,
+      comTelefone: lista.filter((r) => Boolean(r.telefone)).length,
       concluiramTutorial: lista.filter((r) => r.onboarding_ok).length,
     };
 
@@ -91,6 +92,7 @@ interface AdminRow {
   id: string;
   nome: string;
   email: string | null;
+  telefone: string | null;
   onboarding_ok: boolean;
   bloqueado: boolean;
   created_at: string;

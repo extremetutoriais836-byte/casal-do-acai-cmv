@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
 import { traduzErroAuth, traduzExcecao } from "@/lib/erros";
+import { mascaraTelefone, telefoneValido, telefoneParaArmazenar } from "@/lib/format";
 
 export default function CadastroPage() {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -22,6 +24,10 @@ export default function CadastroPage() {
     setErro(null);
     setAviso(null);
 
+    if (!telefoneValido(telefone)) {
+      setErro("Informe um WhatsApp válido com DDD. Ex: (11) 98765-4321");
+      return;
+    }
     if (senha.length < 6) {
       setErro("A senha precisa ter pelo menos 6 caracteres.");
       return;
@@ -37,7 +43,7 @@ export default function CadastroPage() {
       const resp = await supabase.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome } },
+        options: { data: { nome, telefone: telefoneParaArmazenar(telefone) } },
       });
       if (resp.error) {
         console.error("[cadastro] erro do Supabase:", resp.error);
@@ -79,6 +85,16 @@ export default function CadastroPage() {
         <form onSubmit={criar} className="mt-5 space-y-4">
           <Campo label="Nome" type="text" value={nome} onChange={setNome} autoComplete="name" required />
           <Campo label="E-mail" type="email" value={email} onChange={setEmail} autoComplete="email" required />
+          <Campo
+            label="WhatsApp"
+            type="tel"
+            value={telefone}
+            onChange={(v) => setTelefone(mascaraTelefone(v))}
+            autoComplete="tel"
+            placeholder="(11) 98765-4321"
+            ajuda="Com DDD. Usamos para falar com você sobre a ferramenta."
+            required
+          />
           <Campo label="Senha" type="password" value={senha} onChange={setSenha} autoComplete="new-password" required />
           <Campo label="Confirmar senha" type="password" value={confirmar} onChange={setConfirmar} autoComplete="new-password" required />
 
@@ -112,6 +128,8 @@ function Campo({
   onChange,
   autoComplete,
   required,
+  placeholder,
+  ajuda,
 }: {
   label: string;
   type: string;
@@ -119,16 +137,21 @@ function Campo({
   onChange: (v: string) => void;
   autoComplete?: string;
   required?: boolean;
+  placeholder?: string;
+  ajuda?: string;
 }) {
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-medium text-ink">{label}</span>
+      {ajuda && <span className="mb-1 block text-xs text-muted">{ajuda}</span>}
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required={required}
+        placeholder={placeholder}
+        inputMode={type === "tel" ? "numeric" : undefined}
         className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
       />
     </label>
