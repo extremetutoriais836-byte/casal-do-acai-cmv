@@ -5,7 +5,9 @@
  * mostrar o texto original. Engolir o erro atrás de um "tente novamente"
  * genérico deixa o usuário (e quem dá suporte) sem nada para investigar.
  */
-export function traduzErroAuth(msg: string, acao: "entrar" | "criar a conta"): string {
+export type AcaoAuth = "entrar" | "criar a conta" | "enviar o link" | "salvar a senha";
+
+export function traduzErroAuth(msg: string, acao: AcaoAuth): string {
   const m = msg ?? "";
 
   // --- Credenciais / conta ---
@@ -26,8 +28,12 @@ export function traduzErroAuth(msg: string, acao: "entrar" | "criar a conta"): s
   // --- Rede / projeto fora do ar ---
   if (/failed to fetch|networkerror|load failed|fetch failed/i.test(m))
     return "Não foi possível falar com o banco de dados. O projeto Supabase pode estar pausado — reative no painel e tente de novo.";
-  if (/rate limit|too many requests/i.test(m))
+  if (/rate limit|too many requests|email rate/i.test(m))
     return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  if (/same.*password|should be different/i.test(m))
+    return "A nova senha precisa ser diferente da anterior.";
+  if (/session|token.*expired|invalid.*token/i.test(m))
+    return "O link expirou ou já foi usado. Peça um novo em 'Esqueci minha senha'.";
 
   // --- Validação ---
   if (/password.*(6|short|length)|weak password/i.test(m))
@@ -40,7 +46,7 @@ export function traduzErroAuth(msg: string, acao: "entrar" | "criar a conta"): s
 }
 
 /** Erro lançado (não retornado) — ex.: cliente Supabase sem configuração. */
-export function traduzExcecao(e: unknown, acao: "entrar" | "criar a conta"): string {
+export function traduzExcecao(e: unknown, acao: AcaoAuth): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (msg.includes("[Supabase]"))
     return "O app está sem configuração do banco de dados. Avise o suporte.";

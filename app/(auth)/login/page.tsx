@@ -49,6 +49,15 @@ export default function LoginPage() {
           <Campo label="E-mail" type="email" value={email} onChange={setEmail} autoComplete="email" required />
           <Campo label="Senha" type="password" value={senha} onChange={setSenha} autoComplete="current-password" required />
 
+          <div className="-mt-2 text-right">
+            <Link
+              href="/esqueci-senha"
+              className="text-sm font-medium text-brand hover:text-brand-vivid"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
+
           {erro && <p className="text-sm font-medium text-loss">{erro}</p>}
 
           <button

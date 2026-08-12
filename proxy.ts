@@ -61,15 +61,26 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  const isAuthPage = path.startsWith("/login") || path.startsWith("/cadastro");
+  // Rotas que dispensam sessão.
+  const publica =
+    path.startsWith("/login") ||
+    path.startsWith("/cadastro") ||
+    path.startsWith("/esqueci-senha") ||
+    path.startsWith("/nova-senha");
 
-  if (!user && !isAuthPage) {
+  // Já logado não precisa ver login/cadastro. `/nova-senha` fica de FORA:
+  // quem chega pelo link do e-mail tem sessão de recuperação ativa, e
+  // mandá-lo ao dashboard impediria de trocar a senha — que é justamente
+  // o motivo de ele estar ali.
+  const redirecionaSeLogado = path.startsWith("/login") || path.startsWith("/cadastro");
+
+  if (!user && !publica) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPage) {
+  if (user && redirecionaSeLogado) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
