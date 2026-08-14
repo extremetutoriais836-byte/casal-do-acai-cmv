@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, LogOut, PlayCircle, ShieldCheck } from "lucide-react";
+import { Check, ClipboardList, LogOut, PlayCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "./Logo";
 import { NAV_ITENS, type NavItem } from "./nav";
@@ -93,6 +93,32 @@ export function Sidebar({
             </Link>
           );
         })}
+
+        {/* Consulta — fora da numeração: não é etapa, é referência do dia a dia. */}
+        <div className="!mt-4 border-t border-line pt-3">
+          <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            Consultar
+          </p>
+          <Link
+            href="/ficha-tecnica"
+            onClick={onNavigate}
+            className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+              pathname === "/ficha-tecnica" ? "bg-brand/10 text-brand-deep" : "text-ink hover:bg-line/50"
+            }`}
+          >
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                pathname === "/ficha-tecnica" ? "bg-brand text-white" : "bg-line/70 text-muted group-hover:bg-line"
+              }`}
+            >
+              <ClipboardList size={16} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">Ficha técnica</span>
+              <span className="block truncate text-xs text-muted">O que vai em cada copo</span>
+            </span>
+          </Link>
+        </div>
 
         {mostrarAdmin && (
           <Link

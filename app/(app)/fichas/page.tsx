@@ -1,32 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, Pencil, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/components/AppContext";
 import { traduzErroBanco, type ErroBanco } from "@/lib/erros";
 import { brl, parseDecimalBR, conversao, paraDigitacao, unidadeDigitacao } from "@/lib/format";
 import { faixaDoCopo, faixaStatus } from "@/lib/calculo";
+import {
+  carregarFichasCompletas,
+  cmvDaFicha,
+  indexarInsumos,
+  type FichaCompleta,
+  type InsumoRef,
+} from "@/lib/fichas";
 import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio } from "@/components/ui";
 import { CmvBadge } from "@/components/CmvBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
-interface InsumoRef {
-  id: string;
-  nome: string;
-  unidade_medida: string;
-  custo_por_unidade: number;
-}
-interface ItemFicha {
-  insumo_id: string;
-  quantidade_utilizada: number;
-}
-interface Ficha {
-  id: string;
-  nome_prato: string;
-  preco_venda: number;
-  itens: ItemFicha[];
-}
+type Ficha = FichaCompleta;
+
 interface LinhaForm {
   insumo_id: string;
   digitado: string;
@@ -44,47 +38,13 @@ export default function FichasPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [excluir, setExcluir] = useState<Ficha | null>(null);
 
-  const insumoPorId = useMemo(
-    () => new Map(insumos.map((i) => [i.id, i])),
-    [insumos]
-  );
+  const insumoPorId = useMemo(() => indexarInsumos(insumos), [insumos]);
 
   const carregar = useCallback(async () => {
     if (!restaurante) return;
-    const [{ data: ins }, { data: fic }] = await Promise.all([
-      supabase
-        .from("insumos")
-        .select("id, nome, unidade_medida, custo_por_unidade")
-        .eq("restaurante_id", restaurante.id)
-        .order("nome"),
-      supabase
-        .from("fichas_tecnicas")
-        .select("id, nome_prato, preco_venda")
-        .eq("restaurante_id", restaurante.id)
-        .order("nome_prato"),
-    ]);
-    const insumosArr = (ins as InsumoRef[]) ?? [];
-    setInsumos(insumosArr);
-
-    const fichasBase = (fic as Omit<Ficha, "itens">[]) ?? [];
-    const ids = fichasBase.map((f) => f.id);
-    let itensPorFicha = new Map<string, ItemFicha[]>();
-    if (ids.length > 0) {
-      const { data: itens } = await supabase
-        .from("ingredientes_ficha")
-        .select("ficha_tecnica_id, insumo_id, quantidade_utilizada")
-        .in("ficha_tecnica_id", ids);
-      itensPorFicha = groupBy(
-        (itens as (ItemFicha & { ficha_tecnica_id: string })[]) ?? [],
-        (r) => r.ficha_tecnica_id
-      );
-    }
-    setFichas(
-      fichasBase.map((f) => ({
-        ...f,
-        itens: itensPorFicha.get(f.id) ?? [],
-      }))
-    );
+    const dados = await carregarFichasCompletas(supabase, restaurante.id);
+    setInsumos(dados.insumos);
+    setFichas(dados.fichas);
   }, [restaurante]);
 
   useEffect(() => {
@@ -92,13 +52,6 @@ export default function FichasPage() {
       await carregar();
     })();
   }, [carregar]);
-
-  function cmvDaFicha(f: Ficha): number {
-    return f.itens.reduce((acc, it) => {
-      const ins = insumoPorId.get(it.insumo_id);
-      return acc + (ins ? it.quantidade_utilizada * ins.custo_por_unidade : 0);
-    }, 0);
-  }
 
   function resetar() {
     setEditandoId(null);
@@ -209,6 +162,16 @@ export default function FichasPage() {
         subtitulo="A ficha de cada tamanho. O custo do copo (CMV) aparece sozinho quando os ingredientes têm preço."
       />
 
+      {fichas.length > 0 && (
+        <Link
+          href="/ficha-tecnica"
+          className="mb-4 flex items-center gap-2 text-sm font-semibold text-brand hover:text-brand-vivid"
+        >
+          <ClipboardList size={15} />
+          Ver a ficha técnica detalhada de cada copo
+        </Link>
+      )}
+
       <Card className={editando ? "border-profit ring-1 ring-profit/30" : ""}>
         <h2 className="mb-4 text-sm font-bold text-ink">
           {editando ? "Editando copo" : "Novo copo"}
@@ -310,7 +273,7 @@ export default function FichasPage() {
           <Vazio>Nenhum copo ainda. Crie o primeiro acima.</Vazio>
         ) : (
           fichas.map((f) => {
-            const cmv = cmvDaFicha(f);
+            const cmv = cmvDaFicha(f, insumoPorId);
             const faixa = faixaDoCopo(f.nome_prato, config.faixasCmv);
             const status = faixaStatus(cmv, faixa);
             return (
@@ -365,13 +328,3 @@ export default function FichasPage() {
   );
 }
 
-function groupBy<T>(arr: T[], key: (t: T) => string): Map<string, T[]> {
-  const m = new Map<string, T[]>();
-  for (const item of arr) {
-    const k = key(item);
-    const list = m.get(k);
-    if (list) list.push(item);
-    else m.set(k, [item]);
-  }
-  return m;
-}
