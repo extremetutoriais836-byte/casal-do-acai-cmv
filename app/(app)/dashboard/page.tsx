@@ -75,10 +75,12 @@ export default function DashboardPage() {
       nome: f.nome_prato,
       cmv: f.cmv,
       precoVenda: f.preco_venda,
-      precoMinimo: r.precoMinimo,
+      precoEquilibrio: r.precoEquilibrio,
+      precoIdeal: r.precoIdeal,
       lucroReal: r.lucroReal,
       margemPct: r.margemPct,
-      abaixoDoPiso: f.preco_venda < r.precoMinimo,
+      abaixoDoIdeal: f.preco_venda < r.precoIdeal,
+      prejuizo: f.preco_venda < r.precoEquilibrio,
       status: faixaStatus(f.cmv, faixaDoCopo(f.nome_prato, config.faixasCmv)),
     };
   });
@@ -136,7 +138,12 @@ export default function DashboardPage() {
                   cor={l.status ? corStatus[l.status] : "text-ink"}
                 />
                 <Metrica rotulo="Preço de venda" valor={brl(l.precoVenda)} />
-                <Metrica rotulo="Preço mínimo" valor={brl(l.precoMinimo)} cor="text-brand-deep" />
+                <Metrica
+                  rotulo="Preço ideal"
+                  valor={brl(l.precoIdeal)}
+                  cor="text-brand-deep"
+                  sub={`p/ lucrar ${brl(restaurante.meta_lucro)}`}
+                />
                 <Metrica
                   rotulo="Quanto sobra"
                   valor={brl(l.lucroReal)}
@@ -145,17 +152,28 @@ export default function DashboardPage() {
                 />
               </div>
 
-              {l.abaixoDoPiso && (
-                <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-loss-soft px-3 py-2 text-xs font-medium text-loss">
+              <p className="mt-3 text-[11px] text-muted">
+                Piso de equilíbrio: <strong className="text-ink">{brl(l.precoEquilibrio)}</strong> —
+                abaixo disso você paga para vender.
+              </p>
+
+              {l.prejuizo ? (
+                <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-loss-soft px-3 py-2 text-xs font-medium text-loss">
                   <TriangleAlert size={14} />
-                  Está abaixo do preço mínimo. Nesse valor, você trabalha quase de graça —
-                  considere subir para {brl(l.precoMinimo)}.
+                  Prejuízo: este preço não cobre nem o custo mais a taxa. Suba para pelo menos{" "}
+                  {brl(l.precoEquilibrio)}.
                 </p>
-              )}
+              ) : l.abaixoDoIdeal ? (
+                <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-warn-soft px-3 py-2 text-xs font-medium text-warn">
+                  <TriangleAlert size={14} />
+                  Você lucra, mas menos que sua meta de {brl(restaurante.meta_lucro)}. Para atingi-la,
+                  venda a {brl(l.precoIdeal)}.
+                </p>
+              ) : null}
             </Card>
           ))}
 
-          <FecharJornada linhas={linhas} taxaAtual={taxaAtual} />
+          <FecharJornada linhas={linhas} taxaAtual={taxaAtual} metaLucro={restaurante.meta_lucro} />
         </div>
       )}
     </>
@@ -266,7 +284,7 @@ function SeletorEntrega({
           />
         </label>
         <label>
-          <Rotulo ajuda="Quanto você quer que sobre em cada copo">Meta de lucro por copo</Rotulo>
+          <Rotulo ajuda="Define o preço ideal de cada copo">Quanto você quer lucrar por copo</Rotulo>
           <Input
             inputMode="decimal"
             value={meta}

@@ -40,7 +40,10 @@ export interface ResultadoLucro {
   comissao: number;
   valorLiquido: number;
   lucroReal: number;
-  precoMinimo: number;
+  /** Piso absoluto: cobre só o custo e a taxa. Vender abaixo = prejuízo. */
+  precoEquilibrio: number;
+  /** Preço para lucrar a meta definida pelo dono. */
+  precoIdeal: number;
   margemPct: number | null;
 }
 
@@ -57,9 +60,13 @@ export function calcularLucro({
   const valorLiquido = precoVenda * fator;
   const comissao = precoVenda - valorLiquido;
   const lucroReal = valorLiquido - cmv;
-  const precoMinimo = fator > 0 ? (cmv + metaLucro) / fator : NaN;
+  // Dois preços distintos, que estavam confundidos num só:
+  //   equilíbrio -> cobre custo + taxa (lucro zero); abaixo dele é prejuízo
+  //   ideal      -> equilíbrio + a meta de lucro do dono
+  const precoEquilibrio = fator > 0 ? cmv / fator : NaN;
+  const precoIdeal = fator > 0 ? (cmv + metaLucro) / fator : NaN;
   const margemPct = precoVenda > 0 ? (lucroReal / precoVenda) * 100 : null;
-  return { taxa, comissao, valorLiquido, lucroReal, precoMinimo, margemPct };
+  return { taxa, comissao, valorLiquido, lucroReal, precoEquilibrio, precoIdeal, margemPct };
 }
 
 export type FaixaStatus = "ideal" | "atencao" | "acima" | null;

@@ -11,10 +11,12 @@ export interface LinhaPreco {
   status: FaixaStatus;
   cmv: number;
   precoVenda: number;
-  precoMinimo: number;
+  precoEquilibrio: number;
+  precoIdeal: number;
   lucroReal: number;
   margemPct: number | null;
-  abaixoDoPiso: boolean;
+  abaixoDoIdeal: boolean;
+  prejuizo: boolean;
 }
 
 /**
@@ -30,25 +32,29 @@ export interface LinhaPreco {
 export function FecharJornada({
   linhas,
   taxaAtual,
+  metaLucro,
 }: {
   linhas: LinhaPreco[];
   taxaAtual: number;
+  metaLucro: number;
 }) {
   const [copiado, setCopiado] = useState(false);
 
   if (linhas.length === 0) return null;
 
-  const precisamSubir = linhas.filter((l) => l.abaixoDoPiso);
+  const emPrejuizo = linhas.filter((l) => l.prejuizo);
+  const abaixoDaMeta = linhas.filter((l) => l.abaixoDoIdeal && !l.prejuizo);
 
   function textoDaLista(): string {
-    const cab = `Meus preços — taxa de entrega ${pct(taxaAtual)}\n`;
+    const cab = `Meus preços — taxa ${pct(taxaAtual)} · meta de lucro ${brl(metaLucro)} por copo\n`;
     const corpo = linhas
       .map((l) =>
         [
           `• ${l.nome}`,
           `   custo: ${brl(l.cmv)}`,
           `   preço hoje: ${brl(l.precoVenda)}`,
-          `   preço mínimo: ${brl(l.precoMinimo)}${l.abaixoDoPiso ? "  <-- SUBIR" : ""}`,
+          `   preço ideal: ${brl(l.precoIdeal)}${l.abaixoDoIdeal ? "  <-- SUBIR" : ""}`,
+          `   piso (sem lucro): ${brl(l.precoEquilibrio)}`,
           `   sobra: ${brl(l.lucroReal)}`,
         ].join("\n")
       )
@@ -69,15 +75,16 @@ export function FecharJornada({
 
   function baixarCsv() {
     const linhasCsv = [
-      ["produto", "custo do copo", "preco hoje", "preco minimo", "quanto sobra", "margem %", "situacao"],
+      ["produto", "custo do copo", "preco hoje", "piso sem lucro", "preco ideal", "quanto sobra", "margem %", "situacao"],
       ...linhas.map((l) => [
         l.nome,
         l.cmv.toFixed(2).replace(".", ","),
         l.precoVenda.toFixed(2).replace(".", ","),
-        l.precoMinimo.toFixed(2).replace(".", ","),
+        l.precoEquilibrio.toFixed(2).replace(".", ","),
+        l.precoIdeal.toFixed(2).replace(".", ","),
         l.lucroReal.toFixed(2).replace(".", ","),
         l.margemPct != null ? l.margemPct.toFixed(1).replace(".", ",") : "",
-        l.abaixoDoPiso ? "subir o preco" : "ok",
+        l.prejuizo ? "PREJUIZO - subir ja" : l.abaixoDoIdeal ? "abaixo da meta" : "ok",
       ]),
     ];
     const csv = linhasCsv
@@ -101,20 +108,28 @@ export function FecharJornada({
 
       <p className="mt-2 text-sm leading-relaxed text-ink">
         Você chegou ao fim das 4 etapas. O número que importa agora é o{" "}
-        <strong>preço mínimo</strong> de cada copo: é o valor abaixo do qual você trabalha de
-        graça. Compare com o preço que está no seu cardápio hoje e corrija o que estiver abaixo.
+        <strong>preço ideal</strong> de cada copo: o valor que faz você lucrar os{" "}
+        {brl(metaLucro)} que definiu, já descontada a taxa. Compare com o preço do seu cardápio
+        hoje e corrija o que estiver abaixo.
       </p>
 
-      {precisamSubir.length > 0 ? (
+      {emPrejuizo.length > 0 && (
         <p className="mt-3 rounded-xl bg-loss-soft px-3 py-2 text-sm font-medium text-loss">
-          {precisamSubir.length === 1
-            ? "1 copo está abaixo do preço mínimo:"
-            : `${precisamSubir.length} copos estão abaixo do preço mínimo:`}{" "}
-          {precisamSubir.map((l) => l.nome).join(", ")}.
+          {emPrejuizo.length === 1 ? "1 copo está no prejuízo" : `${emPrejuizo.length} copos estão no prejuízo`}
+          {" "}(nem cobrem o custo e a taxa): {emPrejuizo.map((l) => l.nome).join(", ")}.
         </p>
-      ) : (
+      )}
+
+      {abaixoDaMeta.length > 0 && (
+        <p className="mt-2 rounded-xl bg-warn-soft px-3 py-2 text-sm font-medium text-warn">
+          {abaixoDaMeta.length === 1 ? "1 copo lucra" : `${abaixoDaMeta.length} copos lucram`} menos
+          que sua meta de {brl(metaLucro)}: {abaixoDaMeta.map((l) => l.nome).join(", ")}.
+        </p>
+      )}
+
+      {emPrejuizo.length === 0 && abaixoDaMeta.length === 0 && (
         <p className="mt-3 rounded-xl bg-profit-soft px-3 py-2 text-sm font-medium text-profit">
-          Todos os seus copos já estão acima do preço mínimo. 👏
+          Todos os seus copos já atingem a meta de {brl(metaLucro)} por copo. 👏
         </p>
       )}
 
