@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/components/AppContext";
 import { traduzErroBanco } from "@/lib/erros";
 import { brl, parseDecimalBR, unidadeEscalavel } from "@/lib/format";
-import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio } from "@/components/ui";
+import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio, CampoBusca, normalizar } from "@/components/ui";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface Insumo {
@@ -50,6 +50,12 @@ export default function InsumosPage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [excluir, setExcluir] = useState<Insumo | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const filtrados = useMemo(() => {
+    const q = normalizar(busca);
+    return q ? insumos.filter((i) => normalizar(i.nome).includes(q)) : insumos;
+  }, [insumos, busca]);
 
   const carregar = useCallback(async () => {
     if (!restaurante) return;
@@ -229,11 +235,23 @@ export default function InsumosPage() {
         </p>
       </Card>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6">
+        <CampoBusca
+          valor={busca}
+          onChange={setBusca}
+          placeholder="Buscar ingrediente…"
+          total={insumos.length}
+          mostrando={filtrados.length}
+        />
+      </div>
+
+      <div className="space-y-2">
         {insumos.length === 0 ? (
           <Vazio>Nenhum ingrediente ainda. Adicione o primeiro acima.</Vazio>
+        ) : filtrados.length === 0 ? (
+          <Vazio>Nenhum ingrediente encontrado para “{busca}”.</Vazio>
         ) : (
-          insumos.map((i) => {
+          filtrados.map((i) => {
             const c = custoAmigavel(i);
             return (
               <div

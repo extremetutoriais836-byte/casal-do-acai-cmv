@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Pencil, ShoppingBasket } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -16,7 +16,7 @@ import {
   type InsumoRef,
   type LinhaIngrediente,
 } from "@/lib/fichas";
-import { PageTitulo, Card, Vazio } from "@/components/ui";
+import { PageTitulo, Card, Vazio, CampoBusca, normalizar } from "@/components/ui";
 import { CmvBadge } from "@/components/CmvBadge";
 
 export default function FichaTecnicaPage() {
@@ -25,6 +25,12 @@ export default function FichaTecnicaPage() {
   const [fichas, setFichas] = useState<FichaCompleta[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [aberta, setAberta] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const filtradas = useMemo(() => {
+    const q = normalizar(busca);
+    return q ? fichas.filter((f) => normalizar(f.nome_prato).includes(q)) : fichas;
+  }, [fichas, busca]);
 
   const carregar = useCallback(async () => {
     if (!restaurante) return;
@@ -63,7 +69,19 @@ export default function FichaTecnicaPage() {
         </Vazio>
       ) : (
         <div className="space-y-3">
-          {fichas.map((f) => {
+          <CampoBusca
+            valor={busca}
+            onChange={setBusca}
+            placeholder="Buscar copo…"
+            total={fichas.length}
+            mostrando={filtradas.length}
+          />
+
+          {filtradas.length === 0 && (
+            <Vazio>Nenhum copo encontrado para “{busca}”.</Vazio>
+          )}
+
+          {filtradas.map((f) => {
             const cmv = cmvDaFicha(f, porId);
             const status = faixaStatus(cmv, faixaDoCopo(f.nome_prato, config.faixasCmv));
             const linhas = detalharIngredientes(f, porId);

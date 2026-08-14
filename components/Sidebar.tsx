@@ -37,7 +37,7 @@ export function Sidebar({
 
   return (
     <aside className="flex h-full w-72 flex-col border-r border-line bg-card">
-      <div className="px-5 pt-6 pb-4">
+      <div className="shrink-0 px-5 pt-6 pb-4">
         <Logo />
         {restaurante?.nome_loja && (
           <p className="mt-2 truncate text-sm font-semibold text-brand-deep" title={restaurante.nome_loja}>
@@ -47,7 +47,7 @@ export function Sidebar({
       </div>
 
       {/* progresso */}
-      <div className="px-5 pb-4">
+      <div className="shrink-0 px-5 pb-4">
         <div className="flex items-center justify-between text-xs font-medium text-muted">
           <span>Seu progresso</span>
           <span>
@@ -62,7 +62,7 @@ export function Sidebar({
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3">
         {NAV_ITENS.map((item, idx) => {
           const ativo = pathname === item.href;
           const concluida = item.requer ? etapaConcluida(item, contadores) : false;
@@ -137,7 +137,7 @@ export function Sidebar({
       </nav>
 
       {/* rodapé: tutorial + logout + crédito Locus */}
-      <div className="mt-auto space-y-2 border-t border-line px-3 py-4">
+      <div className="mt-auto shrink-0 space-y-2 border-t border-line px-3 py-4">
         <button
           onClick={() => {
             abrirTutorial();

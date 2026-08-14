@@ -15,7 +15,7 @@ import {
   type FichaCompleta,
   type InsumoRef,
 } from "@/lib/fichas";
-import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio } from "@/components/ui";
+import { PageTitulo, Card, Rotulo, Input, Select, Botao, Vazio, CampoBusca, normalizar } from "@/components/ui";
 import { CmvBadge } from "@/components/CmvBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -37,6 +37,12 @@ export default function FichasPage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [excluir, setExcluir] = useState<Ficha | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const filtradas = useMemo(() => {
+    const q = normalizar(busca);
+    return q ? fichas.filter((f) => normalizar(f.nome_prato).includes(q)) : fichas;
+  }, [fichas, busca]);
 
   const insumoPorId = useMemo(() => indexarInsumos(insumos), [insumos]);
 
@@ -268,11 +274,23 @@ export default function FichasPage() {
         </form>
       </Card>
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6">
+        <CampoBusca
+          valor={busca}
+          onChange={setBusca}
+          placeholder="Buscar copo…"
+          total={fichas.length}
+          mostrando={filtradas.length}
+        />
+      </div>
+
+      <div className="space-y-2">
         {fichas.length === 0 ? (
           <Vazio>Nenhum copo ainda. Crie o primeiro acima.</Vazio>
+        ) : filtradas.length === 0 ? (
+          <Vazio>Nenhum copo encontrado para “{busca}”.</Vazio>
         ) : (
-          fichas.map((f) => {
+          filtradas.map((f) => {
             const cmv = cmvDaFicha(f, insumoPorId);
             const faixa = faixaDoCopo(f.nome_prato, config.faixasCmv);
             const status = faixaStatus(cmv, faixa);
