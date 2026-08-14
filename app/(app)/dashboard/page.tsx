@@ -11,6 +11,7 @@ import type { Restaurante } from "@/lib/restaurante";
 import type { ConfigApp } from "@/lib/config";
 import { PageTitulo, Card, Vazio, Input, Rotulo } from "@/components/ui";
 import { CmvBadge } from "@/components/CmvBadge";
+import { FecharJornada, type LinhaPreco } from "@/components/FecharJornada";
 
 interface FichaCmv {
   ficha_tecnica_id: string;
@@ -59,6 +60,29 @@ export default function DashboardPage() {
   const taxaAtual =
     modelo === "propria" ? config.taxasEntrega.propria : restaurante.taxa_plataforma;
 
+  // Uma passada só: alimenta os cards e o encerramento da jornada.
+  const linhas: LinhaPreco[] = fichas.map((f) => {
+    const r = calcularLucro({
+      cmv: f.cmv,
+      precoVenda: f.preco_venda,
+      modelo,
+      taxaPlataforma: restaurante.taxa_plataforma,
+      metaLucro: restaurante.meta_lucro,
+      taxaPropria: config.taxasEntrega.propria,
+    });
+    return {
+      id: f.ficha_tecnica_id,
+      nome: f.nome_prato,
+      cmv: f.cmv,
+      precoVenda: f.preco_venda,
+      precoMinimo: r.precoMinimo,
+      lucroReal: r.lucroReal,
+      margemPct: r.margemPct,
+      abaixoDoPiso: f.preco_venda < r.precoMinimo,
+      status: faixaStatus(f.cmv, faixaDoCopo(f.nome_prato, config.faixasCmv)),
+    };
+  });
+
   return (
     <>
       <PageTitulo
@@ -98,52 +122,40 @@ export default function DashboardPage() {
             .
           </p>
 
-          {fichas.map((f) => {
-            const r = calcularLucro({
-              cmv: f.cmv,
-              precoVenda: f.preco_venda,
-              modelo,
-              taxaPlataforma: restaurante.taxa_plataforma,
-              metaLucro: restaurante.meta_lucro,
-              taxaPropria: config.taxasEntrega.propria,
-            });
-            const faixa = faixaDoCopo(f.nome_prato, config.faixasCmv);
-            const status = faixaStatus(f.cmv, faixa);
-            const abaixoDoPiso = f.preco_venda < r.precoMinimo;
+          {linhas.map((l) => (
+            <Card key={l.id}>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-bold text-brand-deep">{l.nome}</h3>
+                <CmvBadge status={l.status} />
+              </div>
 
-            return (
-              <Card key={f.ficha_tecnica_id}>
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-bold text-brand-deep">{f.nome_prato}</h3>
-                  <CmvBadge status={status} />
-                </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+                <Metrica
+                  rotulo="Custo do copo (CMV)"
+                  valor={brl(l.cmv)}
+                  cor={l.status ? corStatus[l.status] : "text-ink"}
+                />
+                <Metrica rotulo="Preço de venda" valor={brl(l.precoVenda)} />
+                <Metrica rotulo="Preço mínimo" valor={brl(l.precoMinimo)} cor="text-brand-deep" />
+                <Metrica
+                  rotulo="Quanto sobra"
+                  valor={brl(l.lucroReal)}
+                  cor={l.lucroReal >= 0 ? "text-profit" : "text-loss"}
+                  sub={l.margemPct != null ? `margem ${pct(l.margemPct)}` : undefined}
+                />
+              </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-                  <Metrica
-                    rotulo="Custo do copo (CMV)"
-                    valor={brl(f.cmv)}
-                    cor={status ? corStatus[status] : "text-ink"}
-                  />
-                  <Metrica rotulo="Preço de venda" valor={brl(f.preco_venda)} />
-                  <Metrica rotulo="Preço mínimo" valor={brl(r.precoMinimo)} cor="text-brand-deep" />
-                  <Metrica
-                    rotulo="Quanto sobra"
-                    valor={brl(r.lucroReal)}
-                    cor={r.lucroReal >= 0 ? "text-profit" : "text-loss"}
-                    sub={r.margemPct != null ? `margem ${pct(r.margemPct)}` : undefined}
-                  />
-                </div>
+              {l.abaixoDoPiso && (
+                <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-loss-soft px-3 py-2 text-xs font-medium text-loss">
+                  <TriangleAlert size={14} />
+                  Está abaixo do preço mínimo. Nesse valor, você trabalha quase de graça —
+                  considere subir para {brl(l.precoMinimo)}.
+                </p>
+              )}
+            </Card>
+          ))}
 
-                {abaixoDoPiso && (
-                  <p className="mt-3 flex items-center gap-1.5 rounded-lg bg-loss-soft px-3 py-2 text-xs font-medium text-loss">
-                    <TriangleAlert size={14} />
-                    Está abaixo do preço mínimo. Nesse valor, você trabalha quase de graça —
-                    considere subir para {brl(r.precoMinimo)}.
-                  </p>
-                )}
-              </Card>
-            );
-          })}
+          <FecharJornada linhas={linhas} taxaAtual={taxaAtual} />
         </div>
       )}
     </>

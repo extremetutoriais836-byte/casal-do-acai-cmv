@@ -121,7 +121,8 @@ const SLIDES: Slide[] = [
     titulo: "Vamos descobrir quanto custa o seu copo",
     paragrafo:
       "A maioria das lojas de açaí não sabe o custo real do que vende — e por isso precifica no chute. Em quatro passos simples você vai saber exatamente quanto gasta em cada copo e por quanto precisa vender para lucrar de verdade.",
-    destaque: "Leva cerca de 15 minutos. Você pode parar e voltar quando quiser.",
+    destaque:
+      "No fim você sai com a lista de preços da sua loja pronta para corrigir o cardápio. Leva cerca de 15 minutos e você pode parar e voltar quando quiser.",
   },
   {
     videoKey: "passo_1",
@@ -154,8 +155,9 @@ const SLIDES: Slide[] = [
     Anim: AnimLucro,
     titulo: "Agora sim: quanto sobra em cada copo",
     paragrafo:
-      "Com tudo preenchido, você vê o custo, a margem e o preço mínimo de cada tamanho — o valor abaixo do qual você está trabalhando de graça. Quando o preço de um ingrediente mudar, é só atualizar num lugar só. Todos os copos se recalculam sozinhos.",
-    destaque: "Pronto para começar?",
+      "Com tudo preenchido, você vê o custo, a margem e o preço mínimo de cada tamanho — o valor abaixo do qual você está trabalhando de graça. Esse é o número que você leva para a sua loja: compare com o preço do seu cardápio hoje e corrija o que estiver abaixo.",
+    destaque:
+      "No fim da última etapa você pode copiar ou baixar a lista pronta, para ajustar os preços na loja e nos aplicativos. Pronto para começar?",
   },
 ];
 
